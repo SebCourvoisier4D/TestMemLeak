@@ -1,0 +1,47 @@
+{
+	"toJSON": true,
+	"extraProperties": {
+		"version": "2",
+		"classes": {
+			"Main": {
+				"panelColor": "#70CCC2",
+				"panel": {
+					"isOpen": "true",
+					"position": {
+						"X": 25,
+						"Y": 20
+					},
+					"pathVisible": true
+				}
+			}
+		},
+		"model": {
+			"scriptMode": "manual",
+			"workspaceLeft": 0,
+			"workspaceTop": 0
+		}
+	},
+	"dataClasses": [
+		{
+			"collectionName": "MainCollection",
+			"className": "Main",
+			"attributes": [
+				{
+					"name": "ID",
+					"kind": "storage",
+					"type": "long",
+					"autosequence": "true",
+					"unique": "true",
+					"primKey": "true"
+				},
+				{
+					"name": "content",
+					"scope": "public",
+					"type": "string",
+					"kind": "storage"
+				}
+			]
+		}
+	],
+	"type": []
+}
