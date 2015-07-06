@@ -2,10 +2,12 @@
 
 var async = require('async'),
 	request = require('request'),
+	os = require('os'),
 	target = 'http://127.0.0.1:8081/rpc/',
 	delay = 500,
-	nbInjectors = 10,
+	nbInjectors = 6,
 	parallelStack = [],
+	lastMemoryUsage = null,
 	post,
 	info,
 	i;
@@ -27,7 +29,6 @@ post = function(id, callback) {
 		},
 		function(err, response, data) {
 			now = new Date();
-			console.log(data);
 			console.log('...(' + id + ') done in', ((now.getTime() - then.getTime()) / 1000).toFixed(2), 'sec.');
 			callback(err);
 		}
@@ -35,9 +36,11 @@ post = function(id, callback) {
 };
 
 for (i = 0; i < nbInjectors; i++) {
-	parallelStack.push(function(callback) {
-		post(i + 1, callback);
-	});
+	(function (i) {
+		parallelStack.push(function(callback) {
+			post(i + 1, callback);
+		});
+	})(i);
 }
 
 async.forever(
@@ -54,17 +57,34 @@ async.forever(
 					}
 				},
 				function(e, response, data) {
+					var memoryUsage;
+					console.log('');
 					if (e) {
 						console.log('rest/$Info error:', e);
 					} else {
 						try {
 							info = JSON.parse(data);
-							console.log('Cache Size: ' + info.cacheSize);
-							console.log('Used Cache: ' + info.usedCache);
+							console.log('Wakanda Cache Size: ' + (info.cacheSize / 1024 / 1024).toFixed(2) + 'Mb');
+							console.log('Wakanda Used Cache: ' + (info.usedCache / 1024 / 1024).toFixed(2) + 'Mb');
 						} catch (e) {
 							console.log('rest/$Info error:', e);
 						}
 					}
+					memoryUsage = (((os.totalmem() - os.freemem()) / os.totalmem()) * 100);
+					console.log('OS Total Memory: ' + (os.totalmem() / 1024 / 1024).toFixed(2) + 'Mb');
+					console.log('OS Free Memory: ' + (os.freemem() / 1024 / 1024).toFixed(2) + 'Mb');
+					console.log('OS Memory Used: ' + memoryUsage.toFixed(2) + '%');
+					if (lastMemoryUsage !== null) {
+						if (memoryUsage < lastMemoryUsage) {
+							console.log('\033[32m[-]\033[0m');
+						} else if (memoryUsage > lastMemoryUsage) {
+							console.log('\033[31m[+]\033[0m');
+						} else {
+							console.log('\033[34m[=]\033[0m');
+						}
+					}
+					lastMemoryUsage = memoryUsage;
+					console.log('');
 					setTimeout(next, delay, err);
 				}
 			);

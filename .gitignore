@@ -29,3 +29,4 @@ node_modules
 *.waIndx
 *.waData
 *.cacheUAG
+MemLeak Solution/breakpoints.json
