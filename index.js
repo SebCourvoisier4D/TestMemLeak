@@ -8,6 +8,7 @@ var async = require('async'),
 	nbInjectors = 6,
 	parallelStack = [],
 	lastMemoryUsage = null,
+	initialMemoryUsage,
 	post,
 	info,
 	i;
@@ -76,7 +77,6 @@ async.forever(
 					console.log((new Date()).toLocaleString());
 					console.log('OS Total Memory: ' + (os.totalmem() / 1024 / 1024).toFixed(2) + 'Mb');
 					console.log('OS Free Memory: ' + (os.freemem() / 1024 / 1024).toFixed(2) + 'Mb');
-					console.log('OS Memory Used: ' + memoryUsage.toFixed(2) + '%');
 					if (lastMemoryUsage !== null) {
 						if (memoryUsage < lastMemoryUsage) {
 							console.log('\033[32m[-]\033[0m');
@@ -85,7 +85,10 @@ async.forever(
 						} else {
 							console.log('\033[34m[=]\033[0m');
 						}
+					} else {
+						initialMemoryUsage = memoryUsage;
 					}
+					console.log('OS Memory Used: ' + memoryUsage.toFixed(2) + '%' + (initialMemoryUsage ? ' (started at ' + initialMemoryUsage.toFixed(2) + '%)' : ''));
 					lastMemoryUsage = memoryUsage;
 					console.log('');
 					setTimeout(next, delay, err);
