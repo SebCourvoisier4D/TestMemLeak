@@ -104,24 +104,39 @@ async.forever(
 							console.log('');
 							setTimeout(next, delay, err);
 						});
+					} else if (plateform === 'mac') {
+						child_process.exec("ps -A | grep -m1 Enterprise | awk '{print $1}'", function(error, stdout, stderr) {
+							var pid = stdout.toString().trim();
+							child_process.exec('top -pid ' + pid + ' -l 1 -stats mem', function(error, stdout, stderr) {
+								var memoryUsage = stdout.toString().trim().split(/\r?\n/);
+								memoryUsage = memoryUsage[memoryUsage.length - 1];
+								if (/K/.test(memoryUsage) === true) {
+									memoryUsage = parseInt(memoryUsage) / 1024;
+								} else if (/M/.test(memoryUsage) === true) {
+									memoryUsage = parseInt(memoryUsage);
+								} else {
+									memoryUsage = parseInt(memoryUsage) * 1024;
+								}
+								if (lastMemoryUsage !== null) {
+									if (memoryUsage < lastMemoryUsage) {
+										console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[32m[-]\033[0m');
+									} else if (memoryUsage > lastMemoryUsage) {
+										console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[31m[+]\033[0m');
+									} else {
+										console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[34m[=]\033[0m');
+									}
+									console.log('(Initial Wakanda Used Memory: ' + initialMemoryUsage.toFixed(2) + 'Mb)');
+								} else {
+									console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m');
+									initialMemoryUsage = memoryUsage;
+								}
+								lastMemoryUsage = memoryUsage;
+								console.log('');
+								setTimeout(next, delay, err);
+							});
+						});
 					} else {
-						// MAC top -pid 460 -l 1 -stats mem
-						/*
-						Processes: 154 total, 3 running, 10 stuck, 141 sleeping, 564 threads 
-						2015/07/06 15:07:14
-						Load Avg: 2.59, 2.44, 2.49 
-						CPU usage: 27.65% user, 21.27% sys, 51.6% idle 
-						SharedLibs: 14M resident, 8008K data, 0B linkedit.
-						MemRegions: 21392 total, 7085M resident, 73M private, 162M shared.
-						PhysMem: 16G used (3859M wired), 108M unused.
-						VM: 389G vsize, 1063M framework vsize, 0(0) swapins, 0(0) swapouts.
-						Networks: packets: 180092/40M in, 110778/17M out.
-						Disks: 46664/7073M read, 13854/349M written.
-
-						MEM   
-						6409M+
-						*/
-						console.log('');
+						console.log('(not implemented)');
 						setTimeout(next, delay, err);
 					}
 				}
@@ -133,7 +148,3 @@ async.forever(
 		process.exit(0);
 	}
 );
-
-/*
-{"cacheSize":209715200,"usedCache":170489472,"entitySetCount":0,"ProgressInfo":[{"UserInfo":"indexProgressIndicator","sessions":0,"percent":0},{"UserInfo":"flushProgressIndicator","sessions":0,"percent":0}],"sessionInfo":[{"sessionID":"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF","userID":"00000000000000000000000000000000","userName":"default guest","lifeTime":3600,"expiration":"2015-07-03T13:00:26.839Z"}],"jsContextInfo":[{"contextPoolSize":50,"activeDebugger":false,"threadPoolCount":6,"createdThreadPoolCount":6,"destroyedThreadPoolCount":0,"usedContextCount":4,"usedContextMaxCount":4,"reusableContextCount":5,"unusedContextCount":1,"createdReusableContextCount":5,"createdContextCount":9,"destroyedContextCount":4}]}
-*/
