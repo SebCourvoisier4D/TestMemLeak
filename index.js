@@ -61,6 +61,7 @@ async.forever(
 					console.log('');
 					if (e) {
 						console.log('rest/$Info error:', e);
+						console.log('');
 					} else {
 						try {
 							info = JSON.parse(data);
@@ -68,9 +69,11 @@ async.forever(
 							console.log('Wakanda Used Cache: ' + (info.usedCache / 1024 / 1024).toFixed(2) + 'Mb');
 						} catch (e) {
 							console.log('rest/$Info error:', e);
+							console.log('');
 						}
 					}
 					memoryUsage = (((os.totalmem() - os.freemem()) / os.totalmem()) * 100);
+					console.log((new Date()).toLocaleString());
 					console.log('OS Total Memory: ' + (os.totalmem() / 1024 / 1024).toFixed(2) + 'Mb');
 					console.log('OS Free Memory: ' + (os.freemem() / 1024 / 1024).toFixed(2) + 'Mb');
 					console.log('OS Memory Used: ' + memoryUsage.toFixed(2) + '%');
