@@ -3,15 +3,26 @@
 var async = require('async'),
 	request = require('request'),
 	os = require('os'),
+	child_process = require('child_process'),
 	target = 'http://127.0.0.1:8081/rpc/',
 	delay = 500,
-	nbInjectors = 6,
+	nbInjectors = 2,
 	parallelStack = [],
 	lastMemoryUsage = null,
 	initialMemoryUsage,
 	post,
 	info,
-	i;
+	i,
+	plateform,
+	since = new Date();
+
+if (/^darwin/i.test(process.platform) === true) {
+	plateform = 'mac';
+} else if (/^win/i.test(process.platform) === true) {
+	plateform = 'win';
+} else {
+	plateform = 'linux';
+}
 
 post = function(id, callback) {
 	var then = new Date(),
@@ -37,7 +48,7 @@ post = function(id, callback) {
 };
 
 for (i = 0; i < nbInjectors; i++) {
-	(function (i) {
+	(function(i) {
 		parallelStack.push(function(callback) {
 			post(i + 1, callback);
 		});
@@ -58,40 +69,61 @@ async.forever(
 					}
 				},
 				function(e, response, data) {
-					var memoryUsage;
+					var now = new Date();
 					console.log('');
-					if (e) {
-						console.log('rest/$Info error:', e);
-						console.log('');
-					} else {
+					console.log(now.toLocaleString());
+					console.log('Elapsed Time: ' + ((now.getTime() - since.getTime()) / (1000 * 60)).toFixed(2) + 'mn');
+					console.log('OS Total Memory: ' + (os.totalmem() / 1024 / 1024).toFixed(2) + 'Mb');
+					console.log('OS Free Memory: ' + (os.freemem() / 1024 / 1024).toFixed(2) + 'Mb');
+					console.log('OS Memory Used: ' + (((os.totalmem() - os.freemem()) / os.totalmem()) * 100).toFixed(2) + '%');
+					if (!e) {
 						try {
 							info = JSON.parse(data);
 							console.log('Wakanda Cache Size: ' + (info.cacheSize / 1024 / 1024).toFixed(2) + 'Mb');
 							console.log('Wakanda Used Cache: ' + (info.usedCache / 1024 / 1024).toFixed(2) + 'Mb');
-						} catch (e) {
-							console.log('rest/$Info error:', e);
+						} catch (ignore) {}
+					}
+					if (plateform === 'win') {
+						child_process.exec('tasklist /nh /fi "Imagename eq Wakanda Server.exe" /fo CSV', function(error, stdout, stderr) {
+							var memoryUsage = stdout.toString().split(',')[4];
+							memoryUsage = parseInt(/(\d+)/.exec(memoryUsage.replace(/\D/g, ''))[1].trim()) / 1024;
+							if (lastMemoryUsage !== null) {
+								if (memoryUsage < lastMemoryUsage) {
+									console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[32m[-]\033[0m');
+								} else if (memoryUsage > lastMemoryUsage) {
+									console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[31m[+]\033[0m');
+								} else {
+									console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[34m[=]\033[0m');
+								}
+								console.log('(Initial Wakanda Used Memory: ' + initialMemoryUsage.toFixed(2) + 'Mb)');
+							} else {
+								console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m');
+								initialMemoryUsage = memoryUsage;
+							}
+							lastMemoryUsage = memoryUsage;
 							console.log('');
-						}
-					}
-					memoryUsage = (((os.totalmem() - os.freemem()) / os.totalmem()) * 100);
-					console.log((new Date()).toLocaleString());
-					console.log('OS Total Memory: ' + (os.totalmem() / 1024 / 1024).toFixed(2) + 'Mb');
-					console.log('OS Free Memory: ' + (os.freemem() / 1024 / 1024).toFixed(2) + 'Mb');
-					if (lastMemoryUsage !== null) {
-						if (memoryUsage < lastMemoryUsage) {
-							console.log('\033[32m[-]\033[0m');
-						} else if (memoryUsage > lastMemoryUsage) {
-							console.log('\033[31m[+]\033[0m');
-						} else {
-							console.log('\033[34m[=]\033[0m');
-						}
+							setTimeout(next, delay, err);
+						});
 					} else {
-						initialMemoryUsage = memoryUsage;
+						// MAC top -pid 460 -l 1 -stats mem
+						/*
+						Processes: 154 total, 3 running, 10 stuck, 141 sleeping, 564 threads 
+						2015/07/06 15:07:14
+						Load Avg: 2.59, 2.44, 2.49 
+						CPU usage: 27.65% user, 21.27% sys, 51.6% idle 
+						SharedLibs: 14M resident, 8008K data, 0B linkedit.
+						MemRegions: 21392 total, 7085M resident, 73M private, 162M shared.
+						PhysMem: 16G used (3859M wired), 108M unused.
+						VM: 389G vsize, 1063M framework vsize, 0(0) swapins, 0(0) swapouts.
+						Networks: packets: 180092/40M in, 110778/17M out.
+						Disks: 46664/7073M read, 13854/349M written.
+
+						MEM   
+						6409M+
+						*/
+						console.log('');
+						setTimeout(next, delay, err);
 					}
-					console.log('OS Memory Used: ' + memoryUsage.toFixed(2) + '%' + (initialMemoryUsage ? ' (started at ' + initialMemoryUsage.toFixed(2) + '%)' : ''));
-					lastMemoryUsage = memoryUsage;
-					console.log('');
-					setTimeout(next, delay, err);
 				}
 			);
 		});
