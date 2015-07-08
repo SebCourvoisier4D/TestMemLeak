@@ -105,7 +105,7 @@ async.forever(
 							setTimeout(next, delay, err);
 						});
 					} else if (plateform === 'mac') {
-						child_process.exec("ps -A | grep -m1 Enterprise | awk '{print $1}'", function(error, stdout, stderr) {
+						child_process.exec("ps -A | grep -m1 Enterp | awk '{print $1}'", function(error, stdout, stderr) {
 							var pid = stdout.toString().trim();
 							child_process.exec('top -pid ' + pid + ' -l 1 -stats mem', function(error, stdout, stderr) {
 								var memoryUsage = stdout.toString().trim().split(/\r?\n/);
@@ -136,8 +136,32 @@ async.forever(
 							});
 						});
 					} else {
-						console.log('(not implemented)');
-						setTimeout(next, delay, err);
+						child_process.exec("ps -A -o comm,%mem,rss,vsz | grep Enterp | awk {'print $3'}", function(error, stdout, stderr) {
+							var memoryUsage = parseFloat(stdout.toString().trim());
+
+							if (isNaN(memoryUsage) === true) {
+								console.log('(Cannot extract Wakanda memory usage)');
+							} else {
+								memoryUsage = (memoryUsage * (os.totalmem() / 1024 / 1024)) / 100;
+								if (lastMemoryUsage !== null) {
+									if (memoryUsage < lastMemoryUsage) {
+										console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[32m[-]\033[0m');
+									} else if (memoryUsage > lastMemoryUsage) {
+										console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[31m[+]\033[0m');
+									} else {
+										console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m \033[34m[=]\033[0m');
+									}
+									console.log('(Initial Wakanda Used Memory: ' + initialMemoryUsage.toFixed(2) + 'Mb)');
+								} else {
+									console.log('\033[33mWakanda Used Memory: ' + memoryUsage.toFixed(2) + 'Mb\033[0m');
+									initialMemoryUsage = memoryUsage;
+								}
+							}
+							
+							lastMemoryUsage = memoryUsage;
+							console.log('');
+							setTimeout(next, delay, err);
+						});
 					}
 				}
 			);
